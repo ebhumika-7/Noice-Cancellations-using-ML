@@ -1,0 +1,202 @@
+import numpy as np
+import tensorflow as tf
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, LayerNormalization, PReLU, Conv1D, Conv2D, Input, Concatenate, Activation, Multiply, Add
+from tensorflow.keras.layers import GRU, Reshape
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.activations import sigmoid
+print(tf.__version__)
+
+def DilatedDenseBlock(inputs):
+        lnz0= model.add(LayerNormalization())
+        prl0 = model.add(PReLU())
+        c1 = model.add(tf.keras.layers.Conv2D(filters=64, kernel_size=1, dilation_rate=1, padding='same'))
+        x0= Concatenate([inputs, c1]) 
+
+        lnz1= model.add(LayerNormalization())
+        prl1 = model.add(PReLU())
+        c2 = model.add(tf.keras.layers.Conv2D(filters=64, kernel_size=1, dilation_rate=2, padding='same'))
+        x1= Concatenate([inputs, c2, x0]) 
+
+        lnz2= model.add(LayerNormalization())
+        prl2 = model.add(PReLU())
+        c3 = model.add(tf.keras.layers.Conv2D(filters=64, kernel_size=1, dilation_rate=4, padding='same'))
+        x2= Concatenate([inputs, c3, x1, x0]) 
+
+        lnz3= model.add(LayerNormalization())
+        prl3 = model.add(PReLU())
+        c4 = model.add(tf.keras.layers.Conv2D(filters=64, kernel_size=1, dilation_rate=8, padding='same'))
+        x3= Concatenate([inputs, c4, x2, x1, x0]) 
+
+        lnz4= model.add(LayerNormalization())
+        prl4 = model.add(PReLU())
+        c5 = model.add(tf.keras.layers.Conv2D(filters=64, kernel_size=1, dilation_rate=16, padding='same'))
+        x4= Concatenate([inputs, c5, x3, x2, x1, x0])
+        return x4
+
+def SqueezedTemporalConvolutionalModule(inputs):
+       convn1= Conv1D(64, kernel_size=1, strides=1, activation='relu', padding='same')(inputs)
+       #main branch
+       mb_prelu1 = PReLU()(convn1)
+       mb_norm1 = LayerNormalization()(mb_prelu1)
+       mb_dc1 = Conv2D(filters=64, kernel_size=(3,3), dilation_rate=1, padding='same')(mb_norm1)
+       #gate branch
+       gb_prelu1 = PReLU()(convn1)
+       gb_norm1 = LayerNormalization()(gb_prelu1)
+       gb_dc1 = Conv2D(filters=64, kernel_size=(3,3), activation='sigmoid', dilation_rate=1, padding='same')(gb_norm1)
+       #multiplicative gate
+       gated_main_branch1 = Multiply()([mb_dc1, gb_dc1])
+       prelu1 = PReLU()(gated_main_branch1)
+       norm1 = LayerNormalization()(prelu1)
+       convn2= Conv1D(256, kernel_size=1,strides=1, activation='relu',padding='same')(norm1)
+       #additive gate
+       a1=Add()([convn2, inputs])
+       #--------------------------
+       convn3 = Conv1D(64, kernel_size=1,strides=1, activation='relu',padding='same')(a1)
+       mb_prelu2 = PReLU()(convn3)
+       mb_norm2 = LayerNormalization()(mb_prelu2)
+       mb_dc2 = Conv2D(filters=64, kernel_size=(3,3), dilation_rate=2, padding='same')(mb_norm2)
+       gb_prelu2 = PReLU()(a1)
+       gb_norm2 = LayerNormalization()(gb_prelu2)
+       gb_dc2 = Conv2D(filters=64, kernel_size=(3,3), activation='sigmoid', dilation_rate=2, padding='same')(gb_norm2)
+       gated_main_branch2 =Multiply()([mb_dc2, gb_dc2])
+       prelu2 = PReLU()(gated_main_branch2)
+       norm2 = LayerNormalization()(prelu2)
+       convn4= Conv1D(256, kernel_size=1,strides=1, activation='relu',padding='same')(norm2)
+       a2=Add()([convn4, a1])
+       #-----------------------------
+       convn5 = Conv1D(64, kernel_size=1,strides=1, activation='relu',padding='same')(a2)
+       mb_prelu3 = PReLU()(convn5)
+       mb_norm3 = LayerNormalization()(mb_prelu3)
+       mb_dc3 = Conv2D(filters=64, kernel_size=(3,3), dilation_rate=4, padding='same')(mb_norm3)
+       gb_prelu3 = PReLU()(a2)
+       gb_norm3 = LayerNormalization()(gb_prelu3)
+       gb_dc3 = Conv2D(filters=64, kernel_size=(3,3), activation='sigmoid', dilation_rate=4, padding='same')(gb_norm3)
+       gated_main_branch3 = Multiply()([mb_dc3, gb_dc3])
+       prelu3 = PReLU()(gated_main_branch3)
+       norm3 = LayerNormalization()(prelu3)
+       convn6= Conv1D(256, kernel_size=1,strides=1, activation='relu',padding='same')(norm3)
+       a3=Add()([convn6, a2])
+       #-----------------------------
+       convn7 = Conv1D(64, kernel_size=1,strides=1, activation='relu',padding='same')(a3)
+       mb_prelu4 = PReLU()(convn7)
+       mb_norm4 = LayerNormalization()(mb_prelu4)
+       mb_dc4 = Conv2D(filters=64, kernel_size=(3,3), dilation_rate=8, padding='same')(mb_norm4)
+       gb_prelu4 = PReLU()(a3)
+       gb_norm4 = LayerNormalization()(gb_prelu4)
+       gb_dc4 =Conv2D(filters=64, kernel_size=(3,3), activation='sigmoid', dilation_rate=8, padding='same')(gb_norm4)
+       gated_main_branch4 = Multiply()([mb_dc4, gb_dc4])
+       prelu4 = PReLU()(gated_main_branch4)
+       norm4 = LayerNormalization()(prelu4)
+       convn8= Conv1D(256, kernel_size=1,strides=1, activation='relu',padding='same')(norm4)
+       a4=Add()([convn8, a3])
+       #-----------------------------
+       convn9 = Conv1D(64, kernel_size=1,strides=1, activation='relu',padding='same')(a4)
+       mb_prelu5 = PReLU()(convn9)
+       mb_norm5 =LayerNormalization()(mb_prelu5)
+       mb_dc5 =Conv2D(filters=64, kernel_size=(3,3), dilation_rate=16, padding='same')(mb_norm5)
+       gb_prelu5 = PReLU()(a4)
+       gb_norm5 = LayerNormalization()(gb_prelu5)
+       gb_dc5 =Conv2D(filters=64, kernel_size=(3,3), activation='sigmoid', dilation_rate=16, padding='same')(gb_norm5)
+       gated_main_branch5 = Multiply()([mb_dc5, gb_dc5])
+       prelu5 =PReLU()(gated_main_branch5)
+       norm5 = LayerNormalization()(prelu5)
+       convn10= Conv1D(256, kernel_size=1,strides=1, activation='relu',padding='same')(norm5)
+       a5=Add()([convn10, a4])
+       return a5
+
+def unet(pretrained_weights = None,input_size = (128,128,1)):
+    input_size = (128,128,1)
+    #size_filter_in = 16
+    #normal initialization of weights
+    kernel_init = 'he_normal'
+    #To apply leaky relu after the conv layer 
+    activation_layer = None
+    inputs = Input(input_size)
+    #2D convolutional layer with 64 filters(it was taken for all the convolutions in the research paper), a kernel size of (3, 3),'same' padding
+    conv1= model.add(tf.keras.layers.Conv2D(64, (3, 3), padding='same'))
+    ln1=model.add(LayerNormalization())
+    act1=model.add(PReLU())
+    mp1=model.add(tf.keras.layers.MaxPooling2D(pool_size=(2,2)))
+    db1 =DilatedDenseBlock(mp1)
+    stcm1=SqueezedTemporalConvolutionalModule(db1)
+
+    conv2= model.add(tf.keras.layers.Conv2D(64, (3, 3), padding='same'))
+    ln2=model.add(LayerNormalization())
+    act2=model.add(PReLU())
+    mp2=model.add(tf.keras.layers.MaxPooling2D(pool_size=(2,2)))
+    db2 =DilatedDenseBlock(mp2)
+    stcm2=SqueezedTemporalConvolutionalModule(db2)
+
+    conv3= model.add(tf.keras.layers.Conv2D(64, (3, 3), padding='same'))
+    ln3=model.add(LayerNormalization())
+    act3=model.add(PReLU())
+    mp3=model.add(tf.keras.layers.MaxPooling2D(pool_size=(2,2)))
+    db3 = DilatedDenseBlock(mp3)
+    stcm3=SqueezedTemporalConvolutionalModule(db3)
+
+    conv4= model.add(tf.keras.layers.Conv2D(64, (3, 3), padding='same'))
+    ln4=model.add(LayerNormalization())
+    act4=model.add(PReLU())
+    mp4=model.add(tf.keras.layers.MaxPooling2D(pool_size=(2,2)))
+    db4 = DilatedDenseBlock(mp4)
+    stcm4=SqueezedTemporalConvolutionalModule(db4)
+
+    # Reshape and add GRU layers
+    r1=model.add(tf.keras.layers.Reshape(target_shape=(64, -1)))
+
+    gru1=model.add(tf.keras.layers.GRU(units=160, return_sequences=True))
+    gru2=model.add(tf.keras.layers.GRU(units=320, return_sequences=False))
+
+    r2=model.add(tf.keras.layers.Reshape(target_shape=(8,8,5)))
+
+    conv5= model.add(tf.keras.layers.Conv2D(64, (3, 3), padding='same'))
+    ln5=model.add(LayerNormalization())
+    act5=model.add(PReLU())
+
+    #Upsampling2D layer with size of 2x2
+    ups1=model.add(tf.keras.layers.UpSampling2D(size=(2, 2)))
+    db5 =DilatedDenseBlock(ups1)
+    stcm5=SqueezedTemporalConvolutionalModule(db5)
+
+    conv6= model.add(tf.keras.layers.Conv2D(64, (3, 3), padding='same'))
+    ln6=model.add(LayerNormalization())
+    act6=model.add(PReLU())
+    ups2=model.add(tf.keras.layers.UpSampling2D(size=(2, 2)))
+    db6 =DilatedDenseBlock(ups2)
+    stcm6=SqueezedTemporalConvolutionalModule(db6)
+
+    conv7= model.add(tf.keras.layers.Conv2D(64, (3, 3), padding='same'))
+    ln7=model.add(LayerNormalization())
+    act7=model.add(PReLU())
+    ups3=model.add(tf.keras.layers.UpSampling2D(size=(2, 2)))
+    db7 =DilatedDenseBlock(ups3)
+    stcm7=SqueezedTemporalConvolutionalModule(db7)
+
+    conv8= model.add(tf.keras.layers.Conv2D(64, (3, 3), padding='same'))
+    ln8=model.add(LayerNormalization())
+    act8=model.add(PReLU())
+    ups4=model.add(tf.keras.layers.UpSampling2D(size=(2, 2)))
+    db8 =DilatedDenseBlock(ups4)
+    stcm8=SqueezedTemporalConvolutionalModule(db8)
+
+    # Final convolution layer
+    conv9= model.add(tf.keras.layers.Conv2D(64, (3, 3), padding='same', activation='softmax'))
+    ln9=model.add(LayerNormalization())
+    act9=model.add(PReLU())
+
+    conv10= model.add(tf.keras.layers.Conv2D(64, (3, 3), padding='same', activation='softmax'))
+    # build model
+    model.build(input_shape)
+
+    #Print the model summary
+    model.summary()
+
+    model = Model(inputs,conv10)
+
+    model.compile(optimizer = 'adam', loss = tf.keras.losses.Huber(), metrics = ['mae'])
+
+    if(pretrained_weights):
+       model.load_weights(pretrained_weights)
+
+    return model

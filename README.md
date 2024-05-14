@@ -8,7 +8,7 @@ With a network that is densely connected, each layer's input receives data from 
             In the proposed approach, we suggest a dense block with dilated connections be applied after every layer in both the decoder and the encoder. There are five 2-dimensional convolutional layers in each dense block. The causal convolutions ensure that the suggested method is appropriate for real-time application. Therefore, the interframe convolutions are causal. After every convolution, parametric ReLU (PReLU) nonlinearity and layer normalization is applied. The dilation rates are set at 1, 2, 4, 8, and 16 in each dense block.
                                   
 
-##REFERENCES
+## REFERENCES
 
 [1] Ashutosh Pandey and DeLiang Wang1, "Densely connected neural network with diluted convolution for real-time speech enhancement in the time domain", 2022, 6629-6631.
 
